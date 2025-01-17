@@ -122,8 +122,9 @@ def main():
                 image = Image.open(img_buffer)
                 
                 st.success("QR codes generated successfully!")
-                st.image(image, caption="PDF Preview", use_container_width=True)
                 st.download_button(label="Download PDF file", data=pdf_buffer, file_name='output_with_qr.pdf', mime='application/pdf')
+                st.image(image, caption="PDF Preview", use_container_width=True)
+                
 
 if __name__ == "__main__":
     main()
