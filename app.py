@@ -6,9 +6,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as ReportLabImage
 from reportlab.lib import colors
 
-def generate_qr_codes(df, column_name, include_all_columns):
-    # Read the specified column
-    column_data = df[column_name]
+def generate_qr_codes(df, selected_columns, qr_column):
+    # Read the specified column for QR codes
+    column_data = df[qr_column]
 
     # Generate and store QR codes for each entry in the column
     qr_images = []
@@ -35,17 +35,11 @@ def generate_qr_codes(df, column_name, include_all_columns):
         qr_images.append(img_buffer)
 
     # Convert the DataFrame to a list of lists for the Table
-    if include_all_columns:
-        table_data = [list(df.columns) + ['QR Code']]  # Add a header for the QR code column
-    else:
-        table_data = [[column_name, 'QR Code']]  # Only include the selected column and QR code header
+    table_data = [selected_columns + ['QR Code']]  # Add a header for the QR code column
 
     # Add data rows to the table, including the QR code images
     for i, row in df.iterrows():
-        if include_all_columns:
-            row_data = list(row.values)
-        else:
-            row_data = [row[column_name]]
+        row_data = list(row[selected_columns].values)
         qr_img = qr_images[i]
         row_data.append(qr_img)
         table_data.append(row_data)
@@ -100,12 +94,12 @@ def main():
             df = pd.read_csv(uploaded_file)
 
         columns = df.columns.tolist()
-        column_name = st.selectbox("Select the column for QR codes", columns)
-        include_all_columns = st.checkbox("Include all columns in the PDF", value=False)
+        qr_column = st.selectbox("Select the column for QR codes", columns)
+        selected_columns = st.multiselect("Select the columns to include in the PDF", columns, default=qr_column)
 
         if st.button("Generate QR Codes"):
             with st.spinner("Generating QR codes..."):
-                pdf_buffer = generate_qr_codes(df, column_name, include_all_columns)
+                pdf_buffer = generate_qr_codes(df, selected_columns, qr_column)
                 st.success("QR codes generated successfully!")
                 st.download_button(label="Download PDF file", data=pdf_buffer, file_name='output_with_qr.pdf', mime='application/pdf')
 
