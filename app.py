@@ -5,6 +5,8 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as ReportLabImage
 from reportlab.lib import colors
+from PIL import Image
+import fitz  # PyMuPDF
 
 def generate_qr_codes(df, selected_columns, qr_column):
     # Read the specified column for QR codes
@@ -68,10 +70,10 @@ def generate_qr_codes(df, selected_columns, qr_column):
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), 12),
-        ('BOTTOMPADDING', (0, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('GRID', (0, 1), (-1, -1), 1, colors.black),
     ])
     table.setStyle(style)
 
@@ -83,6 +85,15 @@ def generate_qr_codes(df, selected_columns, qr_column):
     pdf_buffer.seek(0)
     return pdf_buffer
 
+def read_csv_with_encodings(file):
+    encodings = ['utf-8', 'latin1', 'utf-16', 'ISO-8859-1']
+    for encoding in encodings:
+        try:
+            return pd.read_csv(file, encoding=encoding)
+        except UnicodeDecodeError:
+            continue
+    raise UnicodeDecodeError("Unable to decode file with given encodings.")
+
 def main():
     st.title("QR Code Generator")
 
@@ -91,16 +102,27 @@ def main():
         if uploaded_file.name.endswith('.xlsx'):
             df = pd.read_excel(uploaded_file)
         elif uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
+            df = read_csv_with_encodings(uploaded_file)
 
         columns = df.columns.tolist()
         qr_column = st.selectbox("Select the column for QR codes", columns)
-        selected_columns = st.multiselect("Select the columns to include in the PDF", columns, default=qr_column)
+        selected_columns = st.multiselect("Select more columns to include in the PDF", columns, default=qr_column)
 
         if st.button("Generate QR Codes"):
             with st.spinner("Generating QR codes..."):
                 pdf_buffer = generate_qr_codes(df, selected_columns, qr_column)
+                
+                # Generate a preview image from the PDF
+                pdf_bytes = pdf_buffer.getvalue()
+                pdf_document = fitz.open("pdf", pdf_bytes)
+                pdf_page = pdf_document.load_page(0)
+                pdf_image = pdf_page.get_pixmap()
+                img_buffer = BytesIO(pdf_image.tobytes())
+                img_buffer.seek(0)
+                image = Image.open(img_buffer)
+                
                 st.success("QR codes generated successfully!")
+                st.image(image, caption="PDF Preview", use_container_width=True)
                 st.download_button(label="Download PDF file", data=pdf_buffer, file_name='output_with_qr.pdf', mime='application/pdf')
 
 if __name__ == "__main__":
