@@ -74,8 +74,8 @@ def generate_qr_codes(df, column_name, include_all_columns):
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), 12),
+        ('BOTTOMPADDING', (0, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ])
@@ -90,7 +90,7 @@ def generate_qr_codes(df, column_name, include_all_columns):
     return pdf_buffer
 
 def main():
-    st.title("Excel and CSV to QR Code Generator")
+    st.title("QR Code Generator")
 
     uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["xlsx", "csv"])
     if uploaded_file is not None:
@@ -99,8 +99,9 @@ def main():
         elif uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
 
-        column_name = st.text_input("Column name", "YourColumnName")
-        include_all_columns = st.checkbox("Include all columns in the PDF", value=True)
+        columns = df.columns.tolist()
+        column_name = st.selectbox("Select the column for QR codes", columns)
+        include_all_columns = st.checkbox("Include all columns in the PDF", value=False)
 
         if st.button("Generate QR Codes"):
             with st.spinner("Generating QR codes..."):
